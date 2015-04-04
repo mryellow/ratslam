@@ -7,7 +7,18 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS message_generation std_msgs roscpp sensor_msgs nav_msgs tf visualization_msgs image_transport nav_msgs) ## actionlib_msgs)
+find_package(catkin REQUIRED COMPONENTS
+  cv_bridge
+  message_generation
+  std_msgs
+  roscpp
+  sensor_msgs
+  nav_msgs
+  tf
+  visualization_msgs
+  image_transport
+  nav_msgs
+) ## actionlib_msgs)
 
 find_package(OpenCV)
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -64,6 +75,7 @@ include_directories(
 #ratslam library
 add_library(ratslam src/ratslam/experience_map.cpp src/ratslam/posecell_network.cpp src/ratslam/local_view_match.cpp src/ratslam/visual_odometry.cpp)
 
+target_link_libraries(ratslam ${OpenCV_LIBRARIES})
 
 # uncomment is you don't have irrlicht installed
 add_definitions("-DHAVE_IRRLICHT")
@@ -81,14 +93,16 @@ target_link_libraries(ratslam_pc
   ${catkin_LIBRARIES} 
   ratslam
   ${IRRLICHT_LIBRARIES}
-  ${OPENGL_LIBRARIES})
+  ${OPENGL_LIBRARIES}
+  ${OpenCV_LIBRARIES})
 
 add_executable(ratslam_em src/main_em.cpp)
 target_link_libraries(ratslam_em
   ${catkin_LIBRARIES}
   ratslam
   ${IRRLICHT_LIBRARIES}
-  ${OPENGL_LIBRARIES})
+  ${OPENGL_LIBRARIES}
+  ${OpenCV_LIBRARIES})
 
 add_executable(ratslam_vo src/main_vo.cpp)
 target_link_libraries(ratslam_vo
