@@ -43,6 +43,10 @@
 
 #include <visualization_msgs/Marker.h>
 
+// Distance server by Mr-Yellow 2015-04-25
+#include <ratslam_ros/GetDistance.h>
+
+
 ros::Publisher pub_em;
 ros::Publisher pub_pose;
 ros::Publisher pub_em_markers;
@@ -68,6 +72,7 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
   if (prev_time.toSec() > 0)
   {
     double time_diff = (odo->header.stamp - prev_time).toSec();
+    //ROS_DEBUG_STREAM("EM:odo_callback{" << ros::Time::now() << "} seq=" << odo->header.seq << " v=" << odo->twist.twist.linear.x << " r=" << odo->twist.twist.angular.z << " t=" << time_diff << " goal=" << em->get_current_goal_id());
     em->on_odo(odo->twist.twist.linear.x, odo->twist.twist.angular.z, time_diff);
   }
 
@@ -238,8 +243,26 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
 
 void set_goal_pose_callback(geometry_msgs::PoseStampedConstPtr pose, ratslam::ExperienceMap * em)
 {
+  ROS_DEBUG_STREAM("EM:set_goal_pose_callback x=" << pose->pose.position.x << " y=" << pose->pose.position.y);
   em->add_goal(pose->pose.position.x, pose->pose.position.y);
+}
 
+/**
+ * Service to retrieve distance between two points.
+ * @author Mr-Yellow<mr-yellow@mr-yellow.com>
+ * @date 2015-04-25
+ * @method get_distance_callback
+ * @param {ratslam_ros::GetDistance::Request} req
+ * @param {ratslam_ros::GetDistance::Response} res
+ * @param {ratslam::ExperienceMap} em
+ * @return {bool}
+*/
+bool get_distance_callback(ratslam_ros::GetDistance::Request  &req, ratslam_ros::GetDistance::Response &res, ratslam::ExperienceMap * em) {
+//bool get_distance_callback(ratslam_ros::GetDistance::Request  &req, ratslam_ros::GetDistance::Response &res) {
+  res.distance = em->dijkstra_distance_between_experiences(req.id1, req.id2);
+  ROS_INFO("request: x=%d, y=%d", (int)req.id1, (int)req.id2);
+  ROS_INFO("sending back response: [%ld]", (long int)res.distance);
+  return true;
 }
 
 int main(int argc, char * argv[])
@@ -247,6 +270,7 @@ int main(int argc, char * argv[])
   ROS_INFO_STREAM(argv[0] << " - openRatSLAM Copyright (C) 2012 David Ball and Scott Heath");
   ROS_INFO_STREAM("RatSLAM algorithm by Michael Milford and Gordon Wyeth");
   ROS_INFO_STREAM("Distributed under the GNU GPL v3, see the included license file.");
+  ROS_INFO_STREAM("Modified by Mr-Yellow.");
 
   if (argc < 2)
   {
@@ -283,6 +307,12 @@ int main(int argc, char * argv[])
 
   ros::Subscriber sub_goal = node.subscribe<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/SetGoalPose", 0, boost::bind(set_goal_pose_callback, _1, em),
                                                                         ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
+
+  // Distance server by Mr-Yellow 2015-04-25
+  ros::ServiceServer service = node.advertiseService<ratslam_ros::GetDistance::Request, ratslam_ros::GetDistance::Response>(
+    topic_root + "/ExperienceMap/GetDistance", boost::bind(get_distance_callback, _1, _2, em)
+  );
+  
 
 #ifdef HAVE_IRRLICHT
   boost::property_tree::ptree draw_settings;

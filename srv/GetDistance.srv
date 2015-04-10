@@ -1,0 +1,4 @@
+int32 id1
+int32 id2
+---
+int64 distance

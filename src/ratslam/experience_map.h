@@ -199,6 +199,11 @@ public:
           return goal_path_final_exp_id;
   }
 
+  // Moved to public for Distance server by Mr-Yellow 2015-04-25
+  // calculate distance between two experiences using djikstras algorithm
+  // can be very slow for many experiences
+  double dijkstra_distance_between_experiences(int id1, int id2);
+
 
   template<typename Archive>
     void serialize(Archive& ar, const unsigned int version)
@@ -235,9 +240,11 @@ private:
   {
     ;
   }
+
+  // Moved to public for Distance server by Mr-Yellow 2015-04-25
   // calculate distance between two experiences using djikstras algorithm
   // can be very slow for many experiences
-  double dijkstra_distance_between_experiences(int id1, int id2);
+  //double dijkstra_distance_between_experiences(int id1, int id2);
 
 
   int EXP_LOOPS;

@@ -60,15 +60,23 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::PosecellNetwork *pc, 
   {
     double time_diff = (odo->header.stamp - prev_time).toSec();
 
+    // Previous PoseCellExperience identifier.
     pc_output.src_id = pc->get_current_exp_id();
+    
+    // Apply odometry, excite/inhibit neural-net and integrate path.
+    // FIXME: Broader odom message compatibility. Not linking correctly with wheel odom?
     pc->on_odo(odo->twist.twist.linear.x, odo->twist.twist.angular.z, time_diff);
+    // Create or recall PoseCellExperience with current PosecellVisualTemplate.
     pc_output.action = pc->get_action();
     if (pc_output.action != ratslam::PosecellNetwork::NO_ACTION)
     {
       pc_output.header.stamp = ros::Time::now();
       pc_output.header.seq++;
+      // New PoseCellExperience identifier.
+      // Given an odometry and VisualTemplate now with further evidence, the current experience may be inside the loop again.
       pc_output.dest_id = pc->get_current_exp_id();
-	  pc_output.relative_rad = pc->get_relative_rad();
+      pc_output.relative_rad = pc->get_relative_rad();
+      // Pass the action to experience map for linking.
       pub_pc->publish(pc_output);
       ROS_DEBUG_STREAM("PC:action_publish{odo}{" << ros::Time::now() << "} action{" << pc_output.header.seq << "}=" <<  pc_output.action << " src=" << pc_output.src_id << " dest=" << pc_output.dest_id);
     }
@@ -88,7 +96,6 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::PosecellNetwork *pc, 
 void template_callback(ratslam_ros::ViewTemplateConstPtr vt, ratslam::PosecellNetwork *pc, ros::Publisher * pub_pc)
 {
   ROS_DEBUG_STREAM("PC:vt_callback{" << ros::Time::now() << "} seq=" << vt->header.seq << " id=" << vt->current_id << " rad=" << vt->relative_rad);
-
   pc->on_view_template(vt->current_id, vt->relative_rad);
 
 #ifdef HAVE_IRRLICHT
@@ -125,7 +132,6 @@ int main(int argc, char * argv[])
     ros::init(argc, argv, "RatSLAMPoseCells");
   }
   ros::NodeHandle node;
-
 
 
   ratslam::PosecellNetwork * pc = new ratslam::PosecellNetwork(ratslam_settings);

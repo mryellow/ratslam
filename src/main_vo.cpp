@@ -56,7 +56,8 @@ void image_callback(sensor_msgs::ImageConstPtr image)
 
   static nav_msgs::Odometry odom_output;
 
-  vo->on_image(&image->data[0], (image->encoding == "bgr8" ? false : true), image->width, image->height, &odom_output.twist.twist.linear.x, &odom_output.twist.twist.angular.z);
+  // FIXME: intelligent handling of image encoding
+  vo->on_image(&image->data[0], (image->encoding == "rgb8" ? false : true), image->width, image->height, &odom_output.twist.twist.linear.x, &odom_output.twist.twist.angular.z);
 
   odom_output.header.stamp = image->header.stamp;
   odom_output.header.seq++;

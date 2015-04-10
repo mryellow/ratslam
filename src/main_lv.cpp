@@ -62,13 +62,15 @@ void image_callback(sensor_msgs::ImageConstPtr image, ros::Publisher * pub_vt)
 
   static ratslam_ros::ViewTemplate vt_output;
 
-  lv->on_image(&image->data[0], (image->encoding == "bgr8" ? false : true), image->width, image->height);
+  // FIXME: intelligent handling of image encoding
+  lv->on_image(&image->data[0], (image->encoding == "rgb8" ? false : true), image->width, image->height);
 
   vt_output.header.stamp = ros::Time::now();
   vt_output.header.seq++;
   vt_output.current_id = lv->get_current_vt();
   vt_output.relative_rad = lv->get_relative_rad();
 
+  // TODO: RTABMAP... here it goes out to pose cell
   pub_vt->publish(vt_output);
 
 #ifdef HAVE_IRRLICHT

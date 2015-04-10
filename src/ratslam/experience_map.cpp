@@ -93,6 +93,8 @@ int ExperienceMap::on_create_experience(unsigned int exp_id)
   new_exp->goal_to_current = -1;
   new_exp->current_to_goal = -1;
 
+  // Link the current experience to the last.
+  // FIXME: jumps back to last set pose with wheel odom?
   if (experiences.size() != 1)
     on_create_link(get_current_id(), experiences.size() - 1, 0);
 
@@ -311,13 +313,13 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)
   {
     if (goal_timeout_s != 0 && time_s > goal_timeout_s)
     {
-//      cout << "Timed out reaching goal ... sigh" << endl;
+      //cout << "Timed out reaching goal ... sigh" << endl;
       goal_success = false;
     }
     if (exp_euclidean_m(&experiences[current_exp_id], &experiences[goal_list[0]]) < 0.1)
     {
       goal_success = true;
- //     cout << "Goal reached ... yay!" << endl;
+      //cout << "Goal reached ... yay!" << endl;
     }
     goal_list.pop_front();
     goal_timeout_s = 0;

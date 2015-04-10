@@ -37,6 +37,13 @@ add_message_files(
    ViewTemplate.msg
 )
 
+## Generate services in the 'srv' folder
+## Distance server by Mr-Yellow 2015-04-25
+add_service_files(
+  FILES
+  GetDistance.srv
+)
+
 ## Generate actions in the 'msg' folder
 #add_action_files(DIRECTORY action FILES DoDishes.action)
 #generate_messages(DEPENDENCIES actionlib_msgs)
