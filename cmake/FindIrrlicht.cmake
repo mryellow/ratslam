@@ -1,5 +1,7 @@
 FIND_PATH(IRRLICHT_INCLUDE_DIR irrlicht/irrlicht.h
    PATHS $ENV{IRRDIR}/include
+   /usr/include
+   /usr/local/include
    PATH_SUFFIXES irrlicht
 )
 
