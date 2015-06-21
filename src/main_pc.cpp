@@ -52,9 +52,13 @@ ratslam_ros::TopologicalAction pc_output;
 
 void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::PosecellNetwork *pc, ros::Publisher * pub_pc)
 {
-  ROS_DEBUG_STREAM("PC:odo_callback{" << ros::Time::now() << "} seq=" << odo->header.seq << " v=" << odo->twist.twist.linear.x << " r=" << odo->twist.twist.angular.z);
-
   static ros::Time prev_time(0);
+  /*
+  ROS_DEBUG_STREAM("PC:odo_callback{" << ros::Time::now() <<
+    "} seq=" << odo->header.seq <<
+    " v=" << odo->twist.twist.linear.x <<
+    " r=" << odo->twist.twist.angular.z);
+  */
 
   if (prev_time.toSec() > 0)
   {
@@ -62,7 +66,7 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::PosecellNetwork *pc, 
 
     // Previous PoseCellExperience identifier.
     pc_output.src_id = pc->get_current_exp_id();
-    
+
     // Apply odometry, excite/inhibit neural-net and integrate path.
     // FIXME: Broader odom message compatibility. Not linking correctly with wheel odom?
     pc->on_odo(odo->twist.twist.linear.x, odo->twist.twist.angular.z, time_diff);
@@ -78,7 +82,13 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::PosecellNetwork *pc, 
       pc_output.relative_rad = pc->get_relative_rad();
       // Pass the action to experience map for linking.
       pub_pc->publish(pc_output);
-      ROS_DEBUG_STREAM("PC:action_publish{odo}{" << ros::Time::now() << "} action{" << pc_output.header.seq << "}=" <<  pc_output.action << " src=" << pc_output.src_id << " dest=" << pc_output.dest_id);
+
+      ROS_DEBUG_STREAM("PC:action_publish{odo}{" << ros::Time::now() <<
+        "} seq=" << pc_output.header.seq <<
+        " action=" <<  pc_output.action <<
+        " src=" << pc_output.src_id <<
+        " dest=" << pc_output.dest_id <<
+        " rad=" << pc_output.relative_rad);
     }
 
 
@@ -95,7 +105,10 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::PosecellNetwork *pc, 
 
 void template_callback(ratslam_ros::ViewTemplateConstPtr vt, ratslam::PosecellNetwork *pc, ros::Publisher * pub_pc)
 {
-  ROS_DEBUG_STREAM("PC:vt_callback{" << ros::Time::now() << "} seq=" << vt->header.seq << " id=" << vt->current_id << " rad=" << vt->relative_rad);
+  ROS_DEBUG_STREAM("PC:vt_callback{" << ros::Time::now() <<
+    "} seq=" << vt->header.seq <<
+    " id=" << vt->current_id <<
+    " rad=" << vt->relative_rad);
   pc->on_view_template(vt->current_id, vt->relative_rad);
 
 #ifdef HAVE_IRRLICHT

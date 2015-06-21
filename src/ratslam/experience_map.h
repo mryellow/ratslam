@@ -228,7 +228,7 @@ public:
       ar & goal_success;
       ar & goal_timeout_s;
       ar & goal_path_final_exp_id;
-  	  
+
       ar & relative_rad;
 
     }

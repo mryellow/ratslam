@@ -69,7 +69,7 @@ ExperienceMap::~ExperienceMap()
   experiences.clear();
 }
 
-// create a new experience for a given position 
+// create a new experience for a given position
 int ExperienceMap::on_create_experience(unsigned int exp_id)
 {
 
@@ -94,7 +94,6 @@ int ExperienceMap::on_create_experience(unsigned int exp_id)
   new_exp->current_to_goal = -1;
 
   // Link the current experience to the last.
-  // FIXME: jumps back to last set pose with wheel odom?
   if (experiences.size() != 1)
     on_create_link(get_current_id(), experiences.size() - 1, 0);
 
@@ -207,9 +206,7 @@ int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)
     return 0;
 
   if (new_exp_id == current_exp_id)
-  {
     return 1;
-  }
 
   prev_exp_id = current_exp_id;
   current_exp_id = new_exp_id;
@@ -485,4 +482,3 @@ double ExperienceMap::get_subgoal_rad() const
 }
 
 } // namespace ratslam
-

@@ -51,6 +51,7 @@ ros::Publisher pub_em;
 ros::Publisher pub_pose;
 ros::Publisher pub_em_markers;
 ros::Publisher pub_goal_path;
+ros::Publisher pub_goal_cmd;
 geometry_msgs::PoseStamped pose_output;
 ratslam_ros::TopologicalMap em_map;
 visualization_msgs::Marker em_marker;
@@ -65,14 +66,20 @@ using namespace ratslam;
 
 void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
 {
-  ROS_DEBUG_STREAM("EM:odo_callback{" << ros::Time::now() << "} seq=" << odo->header.seq << " v=" << odo->twist.twist.linear.x << " r=" << odo->twist.twist.angular.z);
+  //ROS_DEBUG_STREAM("EM:odo_callback A{" << ros::Time::now() << "} seq=" << odo->header.seq << " v=" << odo->twist.twist.linear.x << " r=" << odo->twist.twist.angular.z);
 
   static ros::Time prev_time(0);
 
   if (prev_time.toSec() > 0)
   {
     double time_diff = (odo->header.stamp - prev_time).toSec();
-    //ROS_DEBUG_STREAM("EM:odo_callback{" << ros::Time::now() << "} seq=" << odo->header.seq << " v=" << odo->twist.twist.linear.x << " r=" << odo->twist.twist.angular.z << " t=" << time_diff << " goal=" << em->get_current_goal_id());
+    /*
+    ROS_DEBUG_STREAM("EM:on_odo {" << ros::Time::now() <<
+    "} seq=" << odo->header.seq <<
+    " v=" << odo->twist.twist.linear.x <<
+    " r=" << odo->twist.twist.angular.z <<
+    " t=" << time_diff);
+    */
     em->on_odo(odo->twist.twist.linear.x, odo->twist.twist.angular.z, time_diff);
   }
 
@@ -114,6 +121,17 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
 
       path.header.seq++;
 
+      // TODO: Publish cmd_vel from last waypoint entry.
+      //ROS_DEBUG_STREAM("EM:wp_pub{" << ros::Time::now() << "} m=" << em->get_subgoal_m() << " rad=" << em->get_subgoal_rad());
+
+      static geometry_msgs::Twist wp;
+      wp.linear.x  = 0;
+      wp.angular.z = 1-em->get_subgoal_rad();
+      if (abs(wp.angular.z) < 1.15) {
+        wp.linear.x  = em->get_subgoal_m();
+        wp.angular.z = 0;
+      }
+      pub_goal_cmd.publish(wp);
     }
     else
     {
@@ -131,24 +149,36 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
 
 void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::ExperienceMap *em)
 {
-  ROS_DEBUG_STREAM("EM:action_callback{" << ros::Time::now() << "} action=" << action->action << " src=" << action->src_id << " dst=" << action->dest_id);
+  ROS_DEBUG_STREAM("EM:action_callback{" << ros::Time::now() <<
+    "} action=" << action->action <<
+    " src=" << action->src_id <<
+    " dst=" << action->dest_id <<
+    " rad=" << action->relative_rad);
 
   switch (action->action)
   {
     case ratslam_ros::TopologicalAction::CREATE_NODE:
       em->on_create_experience(action->dest_id);
       em->on_set_experience(action->dest_id, 0);
+      ROS_DEBUG_STREAM("EM:CREATE_NODE{" << ros::Time::now() <<
+        "} em_id=" << em->get_current_id() <<
+        " num=" << em->get_num_experiences());
       break;
 
     case ratslam_ros::TopologicalAction::CREATE_EDGE:
       em->on_create_link(action->src_id, action->dest_id, action->relative_rad);
       em->on_set_experience(action->dest_id, action->relative_rad);
+      ROS_DEBUG_STREAM("EM:CREATE_EDGE{" << ros::Time::now() <<
+        "} em_id=" << em->get_current_id() <<
+        " num=" << em->get_num_experiences());
       break;
 
     case ratslam_ros::TopologicalAction::SET_NODE:
       em->on_set_experience(action->dest_id, action->relative_rad);
+      ROS_DEBUG_STREAM("EM:SET_NODE{" << ros::Time::now() <<
+        "} em_id=" << em->get_current_id() <<
+        " num=" << em->get_num_experiences());
       break;
-
   }
 
   em->iterate();
@@ -164,6 +194,12 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
   pose_output.pose.orientation.z = sin(em->get_experience(em->get_current_id())->th_rad / 2.0);
   pose_output.pose.orientation.w = cos(em->get_experience(em->get_current_id())->th_rad / 2.0);
   pub_pose.publish(pose_output);
+
+  ROS_DEBUG_STREAM("EM:pub_pose " <<
+    " x=" << pose_output.pose.position.x <<
+    " y=" << pose_output.pose.position.y <<
+    " z=" << pose_output.pose.orientation.z <<
+    " w=" << pose_output.pose.orientation.w);
 
   static ros::Time prev_pub_time(0);
 
@@ -293,12 +329,20 @@ int main(int argc, char * argv[])
 
   ratslam::ExperienceMap * em = new ratslam::ExperienceMap(ratslam_settings);
 
+  // Create first experience to initalise array.
+  em->on_create_experience(0);
+  em->on_set_experience(0, 0);
+
   pub_em = node.advertise<ratslam_ros::TopologicalMap>(topic_root + "/ExperienceMap/Map", 1);
   pub_em_markers = node.advertise<visualization_msgs::Marker>(topic_root + "/ExperienceMap/MapMarker", 1);
 
   pub_pose = node.advertise<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/RobotPose", 1);
 
   pub_goal_path = node.advertise<nav_msgs::Path>(topic_root + "/ExperienceMap/PathToGoal", 1);
+
+  // Twist publisher by Mr-Yellow 2015-06-21
+  // FIXME: lets publish the relative subgoal, then determine what to do with it elsewhere.
+  pub_goal_cmd = node.advertise<geometry_msgs::Twist>(topic_root + "/ExperienceMap/CmdToGoal", 1);
 
   ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, em), ros::VoidConstPtr(),
                                                                     ros::TransportHints().tcpNoDelay());
@@ -312,7 +356,7 @@ int main(int argc, char * argv[])
   ros::ServiceServer service = node.advertiseService<ratslam_ros::GetDistance::Request, ratslam_ros::GetDistance::Response>(
     topic_root + "/ExperienceMap/GetDistance", boost::bind(get_distance_callback, _1, _2, em)
   );
-  
+
 
 #ifdef HAVE_IRRLICHT
   boost::property_tree::ptree draw_settings;
@@ -328,4 +372,3 @@ int main(int argc, char * argv[])
 
   return 0;
 }
-
