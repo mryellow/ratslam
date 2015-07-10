@@ -6,11 +6,13 @@
 
 * `cv_bridge` and dependancy fixes.
 * Implemented `/ExperienceMap/GetDistance` service which takes two IDs and returns temporal distance.
+* Publishing sub_goal distance and direction on `/ExperienceMap/SubGoal`
+* Reversed goal order, LILO instead of FIFO. Rat needs to return a few steps before returning to beginning.
 
 # Original readme from `master` branch.
 
 RatSLAM lite C/C++/MATLAB versions
-written and copyright 2011 
+written and copyright 2011
 by Dr David Ball (dball@itee.uq.edu.au) and Mr Scott Heath (scott.heath@uqconnect.edu.au)
 This program is free software distributed under the terms of the GNU GPL. See license.txt for full details.
 
@@ -30,7 +32,7 @@ The program depends on other work including Boost, OpenCV, irrlicht, ffmpeg, and
 The RatSLAM algorithm is by Dr Michael Milford and Prof Gordon Wyeth ([michael.milford, gordon.wyeth]@qut.edu.au)
 
 There are two relevant papers to cite depending on your application:
-For outdoor vision only SLAM: 
+For outdoor vision only SLAM:
 Milford, M.J., Wyeth, G.F. (2008) Mapping a Suburb With a Single Camera Using a Biologically Inspired SLAM System, IEEE Transactions on Robotics.
 
 For robot SLAM:

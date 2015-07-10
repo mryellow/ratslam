@@ -315,9 +315,12 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)
     }
     if (exp_euclidean_m(&experiences[current_exp_id], &experiences[goal_list[0]]) < 0.1)
     {
+      // TODO: Publish a message on goal success.
+
       goal_success = true;
       //cout << "Goal reached ... yay!" << endl;
     }
+
     goal_list.pop_front();
     goal_timeout_s = 0;
 
@@ -454,6 +457,8 @@ void ExperienceMap::add_goal(double x_m, double y_m)
       min_dist = dist;
     }
   }
+
+  cout << "Goal distance id:" << min_id << " d:" << min_dist << endl;
 
   if (min_dist < 0.1)
     add_goal(min_id);

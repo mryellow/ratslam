@@ -43,6 +43,9 @@
 
 #include <visualization_msgs/Marker.h>
 
+// Sub goal publisher by Mr-Yellow 2015-07-10
+#include <ratslam_ros/TopologicalGoal.h>
+
 // Distance server by Mr-Yellow 2015-04-25
 #include <ratslam_ros/GetDistance.h>
 
@@ -51,7 +54,7 @@ ros::Publisher pub_em;
 ros::Publisher pub_pose;
 ros::Publisher pub_em_markers;
 ros::Publisher pub_goal_path;
-ros::Publisher pub_goal_cmd;
+ros::Publisher pub_goal_rad;
 geometry_msgs::PoseStamped pose_output;
 ratslam_ros::TopologicalMap em_map;
 visualization_msgs::Marker em_marker;
@@ -99,6 +102,7 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
     {
       em->get_goal_waypoint();
 
+      // Publish path to goal message.
       static geometry_msgs::PoseStamped pose;
       path.header.stamp = ros::Time::now();
       path.header.frame_id = "1";
@@ -118,20 +122,19 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
       }
 
       pub_goal_path.publish(path);
-
       path.header.seq++;
 
-      // TODO: Publish cmd_vel from last waypoint entry.
+      // Publish sub goal message.
       //ROS_DEBUG_STREAM("EM:wp_pub{" << ros::Time::now() << "} m=" << em->get_subgoal_m() << " rad=" << em->get_subgoal_rad());
-
-      static geometry_msgs::Twist wp;
-      wp.linear.x  = 0;
-      wp.angular.z = 1-em->get_subgoal_rad();
-      if (abs(wp.angular.z) < 1.15) {
-        wp.linear.x  = em->get_subgoal_m();
-        wp.angular.z = 0;
-      }
-      pub_goal_cmd.publish(wp);
+      static ratslam_ros::TopologicalGoal wp;
+      wp.header.stamp = ros::Time::now();
+      wp.header.frame_id = "1";
+      wp.header.seq = 0;
+      wp.id = em->get_current_goal_id();
+      wp.dis = em->get_subgoal_m();
+      wp.rad = em->get_subgoal_rad();
+      pub_goal_rad.publish(wp);
+      wp.header.seq++;
     }
     else
     {
@@ -280,6 +283,7 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
 void set_goal_pose_callback(geometry_msgs::PoseStampedConstPtr pose, ratslam::ExperienceMap * em)
 {
   ROS_DEBUG_STREAM("EM:set_goal_pose_callback x=" << pose->pose.position.x << " y=" << pose->pose.position.y);
+  // TODO: Better using `add_goal(id)` signature instead?
   em->add_goal(pose->pose.position.x, pose->pose.position.y);
 }
 
@@ -296,8 +300,8 @@ void set_goal_pose_callback(geometry_msgs::PoseStampedConstPtr pose, ratslam::Ex
 bool get_distance_callback(ratslam_ros::GetDistance::Request  &req, ratslam_ros::GetDistance::Response &res, ratslam::ExperienceMap * em) {
 //bool get_distance_callback(ratslam_ros::GetDistance::Request  &req, ratslam_ros::GetDistance::Response &res) {
   res.distance = em->dijkstra_distance_between_experiences(req.id1, req.id2);
-  ROS_INFO("request: x=%d, y=%d", (int)req.id1, (int)req.id2);
-  ROS_INFO("sending back response: [%ld]", (long int)res.distance);
+  ROS_DEBUG("request: x=%d, y=%d", (int)req.id1, (int)req.id2);
+  ROS_DEBUG("sending back response: [%ld]", (long int)res.distance);
   return true;
 }
 
@@ -340,9 +344,8 @@ int main(int argc, char * argv[])
 
   pub_goal_path = node.advertise<nav_msgs::Path>(topic_root + "/ExperienceMap/PathToGoal", 1);
 
-  // Twist publisher by Mr-Yellow 2015-06-21
-  // FIXME: lets publish the relative subgoal, then determine what to do with it elsewhere.
-  pub_goal_cmd = node.advertise<geometry_msgs::Twist>(topic_root + "/ExperienceMap/CmdToGoal", 1);
+  // Sub goal publisher by Mr-Yellow 2015-07-10
+  pub_goal_rad = node.advertise<ratslam_ros::TopologicalGoal>(topic_root + "/ExperienceMap/SubGoal", 1);
 
   ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, em), ros::VoidConstPtr(),
                                                                     ros::TransportHints().tcpNoDelay());

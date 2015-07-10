@@ -32,6 +32,7 @@ add_message_files(
    FILES
    TopologicalAction.msg
    TopologicalEdge.msg
+   TopologicalGoal.msg
    TopologicalMap.msg
    TopologicalNode.msg
    ViewTemplate.msg
@@ -88,7 +89,7 @@ target_link_libraries(ratslam ${OpenCV_LIBRARIES})
 add_definitions("-DHAVE_IRRLICHT")
 
 add_executable(ratslam_lv src/main_lv.cpp)
-target_link_libraries(ratslam_lv 
+target_link_libraries(ratslam_lv
   ${catkin_LIBRARIES}
   ratslam
   ${IRRLICHT_LIBRARIES}
@@ -97,7 +98,7 @@ target_link_libraries(ratslam_lv
 
 add_executable(ratslam_pc src/main_pc.cpp)
 target_link_libraries(ratslam_pc
-  ${catkin_LIBRARIES} 
+  ${catkin_LIBRARIES}
   ratslam
   ${IRRLICHT_LIBRARIES}
   ${OPENGL_LIBRARIES}

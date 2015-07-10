@@ -176,7 +176,10 @@ public:
   }
   int get_current_goal_id()
   {
-    return (goal_list.size() == 0) ? -1 : (int)goal_list.front();
+    // TODO: Goals from end of list? FIFO? LILO suits rats better...
+    // FIXME: Make this switchable.
+    return (goal_list.size() == 0) ? -1 : (int)goal_list.back();
+    //return (goal_list.size() == 0) ? -1 : (int)goal_list.front();
   }
   void delete_current_goal()
   {
