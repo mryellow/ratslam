@@ -42,6 +42,7 @@ ExperienceMap::ExperienceMap(ptree settings)
   get_setting_from_ptree(EXP_CORRECTION, settings, "exp_correction", 0.5);
   get_setting_from_ptree(EXP_LOOPS, settings, "exp_loops", 10);
   get_setting_from_ptree(EXP_INITIAL_EM_DEG, settings, "exp_initial_em_deg", 90.0);
+  get_setting_from_ptree(EXP_GOAL_FIFO, settings, "exp_goal_fifo", true);
 
   MAX_GOALS = 10;
 
@@ -70,8 +71,10 @@ ExperienceMap::~ExperienceMap()
 }
 
 // create a new experience for a given position
+// FIXME: First experience isn't always first. Issue #5
 int ExperienceMap::on_create_experience(unsigned int exp_id)
 {
+  //cout << " on_create_experience:" << exp_id << endl;
 
   experiences.resize(experiences.size() + 1);
   Experience * new_exp = &(*(experiences.end() - 1));
@@ -240,7 +243,7 @@ double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)
   unsigned int id;
 
   std::priority_queue<Experience*, std::vector<Experience*>, compare> exp_heap;
-
+  // TODO: Duplication, encapsulate.
   for (id = 0; id < experiences.size(); id++)
   {
     experiences[id].time_from_current_s = DBL_MAX;
@@ -297,6 +300,7 @@ double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)
 // return true if path to goal found
 bool ExperienceMap::calculate_path_to_goal(double time_s)
 {
+  //cout << "calculate_path_to_goal:" << goal_list.size() << endl;
 
   unsigned int id;
   waypoint_exp_id = -1;
@@ -304,21 +308,20 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)
   if (goal_list.size() == 0)
     return false;
 
-  // check if we are within thres of the goal or timeout
+  // check if we are within threshold of the goal or timeout
   if (exp_euclidean_m(&experiences[current_exp_id], &experiences[goal_list[0]]) < 0.1
       || ((goal_timeout_s != 0) && time_s > goal_timeout_s))
   {
     if (goal_timeout_s != 0 && time_s > goal_timeout_s)
     {
-      //cout << "Timed out reaching goal ... sigh" << endl;
+      cout << "Timed out reaching goal ... sigh" << endl;
       goal_success = false;
     }
     if (exp_euclidean_m(&experiences[current_exp_id], &experiences[goal_list[0]]) < 0.1)
     {
       // TODO: Publish a message on goal success.
-
+      cout << "Goal reached ... yay!" << endl;
       goal_success = true;
-      //cout << "Goal reached ... yay!" << endl;
     }
 
     goal_list.pop_front();
@@ -338,7 +341,7 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)
     double link_time_s;
 
     std::priority_queue<Experience*, std::vector<Experience*>, compare> exp_heap;
-
+    // TODO: Duplication, encapsulate.
     for (id = 0; id < experiences.size(); id++)
     {
       experiences[id].time_from_current_s = DBL_MAX;
@@ -391,7 +394,9 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)
     }
 
     // now do the current to goal links
+    //unsigned int trace_exp_id = get_current_goal_id();
     unsigned int trace_exp_id = goal_list[0];
+    //unsigned int trace_exp_id = goal_id;
     while (trace_exp_id != current_exp_id)
     {
       experiences[experiences[trace_exp_id].goal_to_current].current_to_goal = trace_exp_id;
@@ -401,7 +406,9 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)
     // means we need a new time out
     if (goal_timeout_s == 0)
     {
+      //goal_timeout_s = time_s + experiences[get_current_goal_id()].time_from_current_s;
       goal_timeout_s = time_s + experiences[goal_list[0]].time_from_current_s;
+      //goal_timeout_s = time_s + experiences[goal_id].time_from_current_s;
       cout << "Goal timeout in " << goal_timeout_s - time_s << "s" << endl;
     }
   }
@@ -413,6 +420,8 @@ bool ExperienceMap::get_goal_waypoint()
 {
   if (goal_list.size() == 0)
     return false;
+
+  //cout << "get_goal_waypoint" << endl;
 
   waypoint_exp_id = -1;
 
@@ -437,6 +446,7 @@ bool ExperienceMap::get_goal_waypoint()
   return true;
 }
 
+// TODO: Notify user/logs if goal rejected.
 void ExperienceMap::add_goal(double x_m, double y_m)
 {
   int min_id = -1;
@@ -446,6 +456,7 @@ void ExperienceMap::add_goal(double x_m, double y_m)
   if (MAX_GOALS != 0 && goal_list.size() >= MAX_GOALS)
     return;
 
+  // Find nearest experience.
   for (unsigned int i = 0; i < experiences.size(); i++)
   {
     dist = sqrt(
@@ -458,7 +469,10 @@ void ExperienceMap::add_goal(double x_m, double y_m)
     }
   }
 
-  cout << "Goal distance id:" << min_id << " d:" << min_dist << endl;
+  cout << "add_goal min_id:" << min_id << " min_dist:" << min_dist << endl;
+
+  // Trigger remapping of `goal_to_current`.
+  if (!EXP_GOAL_FIFO) goal_timeout_s = 0;
 
   if (min_dist < 0.1)
     add_goal(min_id);

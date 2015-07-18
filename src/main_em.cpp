@@ -26,6 +26,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * Changelog(Mr-Yellow):
+ * * Distance server    2015-04-25
+ * * Sub goal publisher 2015-07-10
+ * * Reverse goal order 2015-07-17
+ */
+
 #include "utils/utils.h"
 
 #include <boost/property_tree/ini_parser.hpp>
@@ -43,10 +50,9 @@
 
 #include <visualization_msgs/Marker.h>
 
-// Sub goal publisher by Mr-Yellow 2015-07-10
 #include <ratslam_ros/TopologicalGoal.h>
 
-// Distance server by Mr-Yellow 2015-04-25
+
 #include <ratslam_ros/GetDistance.h>
 
 
@@ -334,6 +340,8 @@ int main(int argc, char * argv[])
   ratslam::ExperienceMap * em = new ratslam::ExperienceMap(ratslam_settings);
 
   // Create first experience to initalise array.
+  // FIXME: Intermittently not happening in time? We only just created the map...
+  // If first experience is > 1 need to create those before. Create experience #1 here?
   em->on_create_experience(0);
   em->on_set_experience(0, 0);
 
@@ -344,7 +352,7 @@ int main(int argc, char * argv[])
 
   pub_goal_path = node.advertise<nav_msgs::Path>(topic_root + "/ExperienceMap/PathToGoal", 1);
 
-  // Sub goal publisher by Mr-Yellow 2015-07-10
+  // Sub goal publisher.
   pub_goal_rad = node.advertise<ratslam_ros::TopologicalGoal>(topic_root + "/ExperienceMap/SubGoal", 1);
 
   ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, em), ros::VoidConstPtr(),
@@ -355,7 +363,7 @@ int main(int argc, char * argv[])
   ros::Subscriber sub_goal = node.subscribe<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/SetGoalPose", 0, boost::bind(set_goal_pose_callback, _1, em),
                                                                         ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
 
-  // Distance server by Mr-Yellow 2015-04-25
+  // Distance server.
   ros::ServiceServer service = node.advertiseService<ratslam_ros::GetDistance::Request, ratslam_ros::GetDistance::Response>(
     topic_root + "/ExperienceMap/GetDistance", boost::bind(get_distance_callback, _1, _2, em)
   );

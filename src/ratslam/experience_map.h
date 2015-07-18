@@ -51,6 +51,8 @@ using boost::property_tree::ptree;
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/deque.hpp>
 
+using namespace std;
+
 namespace ratslam
 {
 
@@ -166,7 +168,12 @@ public:
   void add_goal(double x_m, double y_m);
   void add_goal(int id)
   {
-    goal_list.push_back(id);
+    //cout << " add_goal id:" << id << endl;
+    if (EXP_GOAL_FIFO) {
+      goal_list.push_back(id);
+    } else {
+      goal_list.push_front(id);
+    }
   }
   bool calculate_path_to_goal(double time_s);
   bool get_goal_waypoint();
@@ -176,15 +183,14 @@ public:
   }
   int get_current_goal_id()
   {
-    // TODO: Goals from end of list? FIFO? LILO suits rats better...
-    // FIXME: Make this switchable.
-    return (goal_list.size() == 0) ? -1 : (int)goal_list.back();
-    //return (goal_list.size() == 0) ? -1 : (int)goal_list.front();
+    return (goal_list.size() == 0) ? -1 : (int)goal_list.front();
   }
   void delete_current_goal()
   {
+    //cout << " delete_current_goal" << endl;
     goal_list.pop_front();
   }
+  // TODO: Extension point for goal digestion reward signal ROS topic.
   bool get_goal_success()
   {
     return goal_success;
@@ -199,10 +205,9 @@ public:
 
   unsigned int get_goal_path_final_exp()
   {
-          return goal_path_final_exp_id;
+    return goal_path_final_exp_id;
   }
 
-  // Moved to public for Distance server by Mr-Yellow 2015-04-25
   // calculate distance between two experiences using djikstras algorithm
   // can be very slow for many experiences
   double dijkstra_distance_between_experiences(int id1, int id2);
@@ -215,6 +220,7 @@ public:
       ar & EXP_CORRECTION;
       ar & MAX_GOALS;
       ar & EXP_INITIAL_EM_DEG;
+      ar & EXP_GOAL_FIFO;
 
       ar & experiences;
       ar & links;
@@ -244,16 +250,14 @@ private:
     ;
   }
 
-  // Moved to public for Distance server by Mr-Yellow 2015-04-25
-  // calculate distance between two experiences using djikstras algorithm
-  // can be very slow for many experiences
+  // Moved to public for Distance server.
   //double dijkstra_distance_between_experiences(int id1, int id2);
-
 
   int EXP_LOOPS;
   double EXP_CORRECTION;
   unsigned int MAX_GOALS;
   double EXP_INITIAL_EM_DEG;
+  bool EXP_GOAL_FIFO;
 
   std::vector<Experience> experiences;
   std::vector<Link> links;

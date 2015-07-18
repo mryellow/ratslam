@@ -81,6 +81,9 @@ void image_callback(sensor_msgs::ImageConstPtr image, ros::Publisher * pub_vt)
 #endif
 }
 
+// TODO: Topic to pause/resume collection of view templates.
+// Will allow reducing poor quality VTs by excluding them when facing walls.
+
 int main(int argc, char * argv[])
 {
   ROS_INFO_STREAM(argv[0] << " - openRatSLAM Copyright (C) 2012 David Ball and Scott Heath");

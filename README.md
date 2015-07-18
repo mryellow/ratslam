@@ -4,10 +4,11 @@
 
 ## Modifications
 
-* `cv_bridge` and dependancy fixes.
-* Implemented `/ExperienceMap/GetDistance` service which takes two IDs and returns temporal distance.
-* Publishing sub_goal distance and direction on `/ExperienceMap/SubGoal`
-* Reversed goal order, LILO instead of FIFO. Rat needs to return a few steps before returning to beginning.
+* [x] `cv_bridge` and dependancy fixes.
+* [x] Implemented `/ExperienceMap/GetDistance` service which takes two IDs and returns temporal distance.
+* [x] Publishing sub_goal distance and direction on `/ExperienceMap/SubGoal`
+* [ ] Reversed goal order, LILO instead of FIFO.
+* [ ] Limit ExperienceMap size.
 
 # Original readme from `master` branch.
 
