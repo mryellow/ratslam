@@ -7,7 +7,7 @@
 * [x] `cv_bridge` and dependancy fixes.
 * [x] Implemented `/ExperienceMap/GetDistance` service which takes two IDs and returns temporal distance.
 * [x] Publishing sub_goal distance and direction on `/ExperienceMap/SubGoal`
-* [ ] Reversed goal order, LILO instead of FIFO.
+* [x] Reversed goal order, LILO instead of FIFO.
 * [ ] Limit ExperienceMap size.
 
 # Original readme from `master` branch.
